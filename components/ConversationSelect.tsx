@@ -1,6 +1,8 @@
 import { Conversation } from "@/types/type";
 import React from "react";
 import styled from "styled-components";
+import { useRecipient } from "../hooks/useRecipient";
+import RecipientAvatar from "./RecipientAvatar";
 
 const StyledContainer = styled.div`
   display: flex;
@@ -20,9 +22,13 @@ const ConversationSelect = ({
   id: string;
   conversationUsers: Conversation["users"];
 }) => {
+  const { recipientEmail, recipient } = useRecipient(conversationUsers);
+
   return (
     <StyledContainer>
-      {id}-{JSON.stringify(conversationUsers)}
+      {/* {id}-{JSON.stringify(conversationUsers)} */}
+      <RecipientAvatar recipient={recipient} recipientEmail={recipientEmail} />
+      <span>{recipientEmail}</span>
     </StyledContainer>
   );
 };
