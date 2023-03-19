@@ -22,6 +22,7 @@ import * as EmailValidator from "email-validator";
 import { addDoc, collection, query, where } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { Conversation } from "@/types/type";
+import ConversationSelect from "./ConversationSelect";
 
 const StyledContainer = styled.div`
   height: 100vw;
@@ -104,6 +105,7 @@ const SideBar = () => {
   const isInvitingSelf = recipientEmail === userLoggedIn?.email;
   const handleCreateDialog = async () => {
     if (!recipientEmail) return;
+
     //logic: if email is validated, don't invite yourself, conversation is not existed
     if (
       EmailValidator.validate(recipientEmail) &&
@@ -118,7 +120,16 @@ const SideBar = () => {
     }
 
     handleCloseDialog();
-    console.log("create dialog");
+  };
+
+  const renderConversations = () => {
+    return conversationsSnapshot?.docs.map((conversation) => (
+      <ConversationSelect
+        key={conversation.id}
+        id={conversation.id}
+        conversationUsers={(conversation.data() as Conversation).users}
+      />
+    ));
   };
 
   return (
@@ -146,6 +157,11 @@ const SideBar = () => {
       <StyledSidebarButton onClick={handleClickOpenDialog}>
         Start a new conversation
       </StyledSidebarButton>
+
+      {/* List of conversations */}
+      {renderConversations()}
+
+      {/* Open Dialog of creating a new conversation */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>New conversation</DialogTitle>
         <DialogContent>
@@ -171,8 +187,6 @@ const SideBar = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* List of conversations */}
     </StyledContainer>
   );
 };
