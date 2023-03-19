@@ -63,6 +63,7 @@ const SideBar = () => {
       console.log("error logging out", error);
     }
   };
+
   return (
     <StyledContainer>
       <StyledHeader>
