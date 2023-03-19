@@ -22,7 +22,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
 const db = getFirestore(app);
 const auth = getAuth(app);
