@@ -6,11 +6,20 @@ import ChatIcon from "@mui/icons-material/Chat";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
+import TextField from "@mui/material/TextField";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { auth } from "@/config/firebase";
+import { auth, db } from "@/config/firebase";
 import { signOut } from "firebase/auth";
+import { useAuthState } from "react-firebase-hooks/auth";
+import * as EmailValidator from "email-validator";
+import { addDoc, collection } from "firebase/firestore";
 
 const StyledContainer = styled.div`
   height: 100vw;
@@ -56,6 +65,32 @@ const StyledSearchIput = styled.input`
 `;
 
 const SideBar = () => {
+  const [userLoggedIn, loading, error] = useAuthState(auth);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+
+  const handleClickOpenDialog = () => {
+    setOpenDialog(true);
+    if (!openDialog) setRecipientEmail("");
+  };
+
+  const handleCloseDialog = () => setOpenDialog(false);
+
+  const isInvitingSelf = recipientEmail === userLoggedIn?.email;
+  const handleCreateDialog = async () => {
+    if (!recipientEmail) return;
+    if (EmailValidator.validate(recipientEmail) && !isInvitingSelf) {
+      //add conversation to database 'conversations' collection
+      // a conversation is between the current loggedIn user and the user invited
+      await addDoc(collection(db, "conversations"), {
+        user: [userLoggedIn?.email, recipientEmail],
+      });
+    }
+
+    handleCloseDialog();
+    console.log("create dialog");
+  };
+
   const signOutFunc = async () => {
     try {
       await signOut(auth);
@@ -63,12 +98,12 @@ const SideBar = () => {
       console.log("error logging out", error);
     }
   };
-
+  console.log(recipientEmail);
   return (
     <StyledContainer>
       <StyledHeader>
-        <Tooltip title="User avatar" placement="right">
-          <StyledUserAvatar />
+        <Tooltip title={userLoggedIn?.email as string} placement="right">
+          <StyledUserAvatar src={userLoggedIn?.photoURL || ""} />
         </Tooltip>
         <div>
           <IconButton>
@@ -86,7 +121,35 @@ const SideBar = () => {
         <SearchIcon />
         <StyledSearchIput placeholder="search in conversation"></StyledSearchIput>
       </StyledSearch>
-      <StyledSidebarButton>Search in conversation </StyledSidebarButton>
+      <StyledSidebarButton onClick={handleClickOpenDialog}>
+        Start a new conversation
+      </StyledSidebarButton>
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>New conversation</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Please enter an Google email address for the user you want to chat
+            with
+          </DialogContentText>
+          <TextField
+            name="email"
+            value={recipientEmail}
+            onChange={(e) => setRecipientEmail(e.target.value)}
+            autoFocus
+            label="Email Address"
+            type="email"
+            fullWidth
+            variant="standard"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button disabled={!recipientEmail} onClick={handleCreateDialog}>
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* List of conversations */}
     </StyledContainer>
   );
