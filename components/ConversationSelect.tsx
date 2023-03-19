@@ -3,6 +3,7 @@ import React from "react";
 import styled from "styled-components";
 import { useRecipient } from "../hooks/useRecipient";
 import RecipientAvatar from "./RecipientAvatar";
+import { useRouter } from "next/router";
 
 const StyledContainer = styled.div`
   display: flex;
@@ -23,9 +24,14 @@ const ConversationSelect = ({
   conversationUsers: Conversation["users"];
 }) => {
   const { recipientEmail, recipient } = useRecipient(conversationUsers);
+  const router = useRouter();
+
+  const onSelectConversation = () => {
+    router.push(`/conversations/${id}`);
+  };
 
   return (
-    <StyledContainer>
+    <StyledContainer onClick={onSelectConversation}>
       {/* {id}-{JSON.stringify(conversationUsers)} */}
       <RecipientAvatar recipient={recipient} recipientEmail={recipientEmail} />
       <span>{recipientEmail}</span>
