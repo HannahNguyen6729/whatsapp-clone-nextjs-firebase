@@ -19,7 +19,9 @@ import { auth, db } from "@/config/firebase";
 import { signOut } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 import * as EmailValidator from "email-validator";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, query, where } from "firebase/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { Conversation } from "@/types/type";
 
 const StyledContainer = styled.div`
   height: 100vw;
@@ -69,28 +71,6 @@ const SideBar = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
 
-  const handleClickOpenDialog = () => {
-    setOpenDialog(true);
-    if (!openDialog) setRecipientEmail("");
-  };
-
-  const handleCloseDialog = () => setOpenDialog(false);
-
-  const isInvitingSelf = recipientEmail === userLoggedIn?.email;
-  const handleCreateDialog = async () => {
-    if (!recipientEmail) return;
-    if (EmailValidator.validate(recipientEmail) && !isInvitingSelf) {
-      //add conversation to database 'conversations' collection
-      // a conversation is between the current loggedIn user and the user invited
-      await addDoc(collection(db, "conversations"), {
-        user: [userLoggedIn?.email, recipientEmail],
-      });
-    }
-
-    handleCloseDialog();
-    console.log("create dialog");
-  };
-
   const signOutFunc = async () => {
     try {
       await signOut(auth);
@@ -98,7 +78,49 @@ const SideBar = () => {
       console.log("error logging out", error);
     }
   };
-  console.log(recipientEmail);
+
+  const handleClickOpenDialog = () => {
+    setOpenDialog(true);
+    if (!openDialog) setRecipientEmail("");
+  };
+
+  const handleCloseDialog = () => setOpenDialog(false);
+
+  //check if the conversation already exists between the current user loggedIn and the user invited
+  const queryGetConversationsForCurrentUser = query(
+    collection(db, "conversations"),
+    where("users", "array-contains", userLoggedIn?.email)
+  );
+
+  const [conversationsSnapshot, __loading, __error] = useCollection(
+    queryGetConversationsForCurrentUser
+  );
+
+  const isConversationAlreadyExists = (recipientEmail: string) =>
+    conversationsSnapshot?.docs.find((conversation) =>
+      (conversation.data() as Conversation).users.includes(recipientEmail)
+    );
+
+  const isInvitingSelf = recipientEmail === userLoggedIn?.email;
+  const handleCreateDialog = async () => {
+    if (!recipientEmail) return;
+    //logic: if email is validated, don't invite yourself, conversation is not existed
+    if (
+      EmailValidator.validate(recipientEmail) &&
+      !isInvitingSelf &&
+      !isConversationAlreadyExists(recipientEmail)
+    ) {
+      //add conversation to database 'conversations' collection
+      // a conversation is between the current loggedIn user and the user invited
+      await addDoc(collection(db, "conversations"), {
+        users: [userLoggedIn?.email, recipientEmail],
+      });
+    }
+
+    handleCloseDialog();
+    console.log("create dialog");
+  };
+
   return (
     <StyledContainer>
       <StyledHeader>
